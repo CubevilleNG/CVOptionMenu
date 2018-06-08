@@ -1,0 +1,16 @@
+name: CVOptionMenu
+version: 1.0
+main: org.cubeville.cvoptionmenu.CVOptionMenu
+description: Options Menu
+author: FrediW
+
+commands:
+  omenu:
+    description: Displays an option menu to a player
+    usage: /omenu <player> text|1:command1|2:command2[...]
+    permission: cvoptionmenu.omenu
+    
+permissions:
+  cvoptionmenu.omenu:
+    description: Permission for the /omenu command
+    default: op
