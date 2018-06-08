@@ -21,33 +21,57 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public class CVOptionMenu extends JavaPlugin implements Listener {
 
-    Map<UUID, String[]> playerMenu;
-    Map<UUID, Location> playerLocation;
-    Map<UUID, String> playerLeaveMessage;
+    Map<UUID, ActiveMenu> playerMenu;
+    
+    private class ActiveMenu {
+        
+        public ActiveMenu(String[] optionCommands, Location location, String leaveMessage, double leaveRadius) {
+            this.optionCommands = optionCommands;
+            this.location = location;
+            this.leaveMessage = leaveMessage;
+            this.leaveRadius = leaveRadius;
+        }
+
+        public String getOptionCommand(int Nr) { return optionCommands[Nr]; }
+        public boolean hasOption(int Nr) { return Nr >= 0 && Nr < optionCommands.length; }
+        public Location getLocation() { return location; }
+        public String getLeaveMessage() { return leaveMessage; }
+        public double getLeaveRadius() { return leaveRadius; }
+        
+        private String[] optionCommands;
+        private Location location;
+        private String leaveMessage;
+        private double leaveRadius;
+    }
     
     @Override
     public void onEnable() {
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(this, this);
+
         playerMenu = new HashMap<>();
-        playerLocation = new HashMap<>();
-        playerLeaveMessage = new HashMap<>();
 
         new BukkitRunnable() {
             public void run() {
-                for(UUID playerId: playerLocation.keySet()) {
+                for(UUID playerId: playerMenu.keySet()) {
                     Player player = Bukkit.getServer().getPlayer(playerId);
                     if(player == null) {
                         removePlayer(playerId);
+                        continue;
                     }
-                    else {
-                        if(!player.getLocation().getWorld().getUID().equals(playerLocation.get(playerId).getWorld().getUID())) {
-                            removePlayer(playerId);
-                        }
-                        else if(player.getLocation().distance(playerLocation.get(playerId)) > 5) {
-                            player.sendMessage(playerLeaveMessage.get(playerId));
-                            removePlayer(playerId);
-                        }
+
+                    ActiveMenu am = playerMenu.get(playerId);
+                    Location startLoc = am.getLocation();
+                    Location playerLoc = player.getLocation();
+                    
+                    if(!playerLoc.getWorld().getUID().equals(startLoc.getWorld().getUID())) {
+                        removePlayer(playerId);
+                        continue;
+                    }
+
+                    if(playerLoc.distance(startLoc) > am.getLeaveRadius()) {
+                        player.sendMessage(am.getLeaveMessage());
+                        removePlayer(playerId);
                     }
                 }
             }
@@ -56,12 +80,15 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
     
     private void removePlayer(UUID playerId) {
         playerMenu.remove(playerId);
-        playerLocation.remove(playerId);
-        playerLeaveMessage.remove(playerId);
     }
     
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (label.equalsIgnoreCase("omenu")) {
+            if(args.length < 2) {
+                sender.sendMessage("§cUsage: /omenu <player> <command|leaveradius|leavemessage|command1|command2|...");
+                return true;
+            }
+
             String playerName = args[0];
             Player player = Bukkit.getServer().getPlayer(playerName);
             if(player == null) {
@@ -75,13 +102,19 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
                 cstr += args[i];
             }
 
+            if(cstr.equals("cancel")) {
+                removePlayer(player.getUniqueId());
+                return true;
+            }
+
             StringTokenizer tk = new StringTokenizer(cstr, "|");
 
             String text = ChatColor.translateAlternateColorCodes('&', tk.nextToken());
-            StringTokenizer texttk = new StringTokenizer(text, "\\");
 
+            double leaveRadius = Double.parseDouble(tk.nextToken());
             String leaveMessage = ChatColor.translateAlternateColorCodes('&', tk.nextToken());
             
+            StringTokenizer texttk = new StringTokenizer(text, "\\");
             while(texttk.hasMoreTokens()) {
                 player.sendMessage(texttk.nextToken());
             }
@@ -91,9 +124,8 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
                 options[i] = tk.nextToken();
             }
 
-            playerMenu.put(player.getUniqueId(), options);
-            playerLocation.put(player.getUniqueId(), player.getLocation());
-            playerLeaveMessage.put(player.getUniqueId(), leaveMessage);
+            ActiveMenu am = new ActiveMenu(options, player.getLocation(), leaveMessage, leaveRadius);
+            playerMenu.put(player.getUniqueId(), am);
             
             return true;
         }
@@ -114,11 +146,11 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
             event.setCancelled(true);
             UUID playerId = event.getPlayer().getUniqueId();
             if(playerMenu.containsKey(playerId)) {
-                String[] options = playerMenu.get(playerId);
-                if(idx < options.length) {
+                ActiveMenu am = playerMenu.get(playerId);
+                if(am.hasOption(idx)) {
+                    playerMenu.remove(playerId);
                     Server server = Bukkit.getServer();
-                    server.dispatchCommand(server.getConsoleSender(), options[idx]);
-                    removePlayer(playerId);
+                    server.dispatchCommand(server.getConsoleSender(), am.getOptionCommand(idx));
                 }
             }
         }
