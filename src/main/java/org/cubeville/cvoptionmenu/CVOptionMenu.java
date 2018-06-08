@@ -2,7 +2,6 @@ package org.cubeville.cvoptionmenu;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -107,21 +106,21 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
                 return true;
             }
 
-            StringTokenizer tk = new StringTokenizer(cstr, "|");
+            String[] cstrtk = cstr.split("\\\\s");
 
-            String text = ChatColor.translateAlternateColorCodes('&', tk.nextToken());
+            String text = ChatColor.translateAlternateColorCodes('&', cstrtk[0]);
 
-            double leaveRadius = Double.parseDouble(tk.nextToken());
-            String leaveMessage = ChatColor.translateAlternateColorCodes('&', tk.nextToken());
+            double leaveRadius = Double.parseDouble(cstrtk[1]);
+            String leaveMessage = ChatColor.translateAlternateColorCodes('&', cstrtk[2]);
             
-            StringTokenizer texttk = new StringTokenizer(text, "\\");
-            while(texttk.hasMoreTokens()) {
-                player.sendMessage(texttk.nextToken());
+            String[] texttk = text.split("\\\\r");
+            for(int i = 0; i < texttk.length; i++) {
+                player.sendMessage(texttk[i]);
             }
             
-            String[] options = new String[tk.countTokens()];
+            String[] options = new String[cstrtk.length - 3];
             for(int i = 0; i < options.length; i++) {
-                options[i] = tk.nextToken();
+                options[i] = cstrtk[i + 3];
             }
 
             ActiveMenu am = new ActiveMenu(options, player.getLocation(), leaveMessage, leaveRadius);
@@ -152,6 +151,12 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
                     Server server = Bukkit.getServer();
                     server.dispatchCommand(server.getConsoleSender(), am.getOptionCommand(idx));
                 }
+                else {
+                    event.getPlayer().sendMessage("§cInvalid option.");
+                }
+            }
+            else {
+                event.getPlayer().sendMessage("§cInvalid option. Are you in a conversation right now?");
             }
         }
         
