@@ -1,6 +1,8 @@
 package org.cubeville.cvoptionmenu;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,22 +25,52 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
     Map<UUID, ActiveMenu> playerMenu;
     
     private class ActiveMenu {
-        
-        public ActiveMenu(String[] optionCommands, Location location, String leaveMessage, double leaveRadius) {
-            this.optionCommands = optionCommands;
+
+        public ActiveMenu(Location location) {
+            messages = new ArrayList<>();
+            commands = new ArrayList<>();
             this.location = location;
-            this.leaveMessage = leaveMessage;
-            this.leaveRadius = leaveRadius;
+            leaveMessage = "";
+            leaveRadius = 7;
+            header = "";
+            footer = "";
         }
 
-        public String getOptionCommand(int Nr) { return optionCommands[Nr]; }
-        public boolean hasOption(int Nr) { return Nr >= 0 && Nr < optionCommands.length; }
+        public void addCommand(String command, String message) {
+            commands.add(command);
+            messages.add(message);
+        }
+
+        public void setLeaveMessage(String message) {
+            this.leaveMessage = message;
+        }
+
+        public void setLeaveRadius(String radius) {
+            this.leaveRadius = Double.parseDouble(radius);
+        }
+
+        public void setHeader(String header) {
+            this.header = header;
+        }
+
+        public void setFooter(String footer) {
+            this.footer = footer;
+        }
+        
+        public List<String> getMessages() { return messages; }
+        public String getOptionCommand(int Nr) { return commands.get(Nr); }
+        public boolean hasOption(int Nr) { return Nr >= 0 && Nr < commands.size(); }
         public Location getLocation() { return location; }
         public String getLeaveMessage() { return leaveMessage; }
         public double getLeaveRadius() { return leaveRadius; }
+        public String getHeader() { return header; }
+        public String getFooter() { return footer; }
         
-        private String[] optionCommands;
         private Location location;
+        private List<String> messages;
+        private List<String> commands;
+        String header;
+        String footer;
         private String leaveMessage;
         private double leaveRadius;
     }
@@ -80,11 +112,27 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
     private void removePlayer(UUID playerId) {
         playerMenu.remove(playerId);
     }
+
+    private void sendUsageMessage(CommandSender sender) {
+        sender.sendMessage("§cUsage: /omenu <player> <clear|command|leaveradius|leavemessage|show> <parameter>");
+    }
+
+    private ActiveMenu getMenu(Player player) {
+        UUID pid = player.getUniqueId();
+        if(!playerMenu.containsKey(pid)) {
+            ActiveMenu menu = new ActiveMenu(player.getLocation());
+            playerMenu.put(pid, menu);
+            return menu;
+        }
+        else {
+            return playerMenu.get(pid);
+        }
+    }
     
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (label.equalsIgnoreCase("omenu")) {
             if(args.length < 2) {
-                sender.sendMessage("§cUsage: /omenu <player> <command|leaveradius|leavemessage|command1|command2|...");
+                sendUsageMessage(sender);
                 return true;
             }
 
@@ -95,39 +143,72 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
                 return true;
             }
 
-            String cstr = "";
-            for(int i = 1; i < args.length; i++) {
-                if(i > 1) cstr += " ";
-                cstr += args[i];
-            }
+            String par = args[1];
 
-            if(cstr.equals("cancel")) {
+            if(par.equals("clear")) {
                 removePlayer(player.getUniqueId());
                 return true;
             }
 
-            String[] cstrtk = cstr.split("\\\\s");
-
-            String text = ChatColor.translateAlternateColorCodes('&', cstrtk[0]);
-
-            double leaveRadius = Double.parseDouble(cstrtk[1]);
-            String leaveMessage = ChatColor.translateAlternateColorCodes('&', cstrtk[2]);
-            
-            String[] texttk = text.split("\\\\r");
-            for(int i = 0; i < texttk.length; i++) {
-                player.sendMessage(texttk[i]);
+            if(par.equals("show")) {
+                ActiveMenu menu = playerMenu.get(player.getUniqueId());
+                if(menu == null) {
+                    sender.sendMessage("§cNo menu available.");
+                    return true;
+                }
+                player.sendMessage(menu.getHeader());
+                for(String message: menu.getMessages()) {
+                    player.sendMessage(message);
+                }
+                player.sendMessage(menu.getFooter());
+                return true;
             }
             
-            String[] options = new String[cstrtk.length - 3];
-            for(int i = 0; i < options.length; i++) {
-                options[i] = cstrtk[i + 3];
+            if(args.length < 3) {
+                sendUsageMessage(sender);
+                return true;
+            }
+            
+            String pdata = "";
+            for(int i = 2; i < args.length; i++) {
+                if(i > 1) pdata += " ";
+                pdata += args[i];
             }
 
-            ActiveMenu am = new ActiveMenu(options, player.getLocation(), leaveMessage, leaveRadius);
-            playerMenu.put(player.getUniqueId(), am);
+            if(par.equals("command")) {
+                int delim = pdata.indexOf("|");
+                if(delim == -1) {
+                    sendUsageMessage(sender);
+                    return true;
+                }
+                String cmd = pdata.substring(0, delim);
+                String message = pdata.substring(delim + 1);
+                getMenu(player).addCommand(cmd, message);
+            }
+
+            else if(par.equals("leavemessage")) {
+                getMenu(player).setLeaveMessage(pdata);
+            }
+
+            else if(par.equals("leaveradius")) {
+                getMenu(player).setLeaveRadius(pdata);
+            }
+
+            else if(par.equals("header")) {
+                getMenu(player).setHeader(pdata);
+            }
+
+            else if(par.equals("footer")) {
+                getMenu(player).setFooter(pdata);
+            }
             
+            else {
+                sendUsageMessage(sender);
+            }
+
             return true;
         }
+
         return false;
     }
 
@@ -139,7 +220,7 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
             event.setCancelled(true);
             return;
         }
-        
+
         int idx = "123456789".indexOf(event.getMessage());
         if(event.getMessage().length() == 1 && idx >= 0) {
             event.setCancelled(true);
