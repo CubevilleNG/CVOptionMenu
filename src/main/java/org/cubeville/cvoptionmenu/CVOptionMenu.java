@@ -30,10 +30,10 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
             messages = new ArrayList<>();
             commands = new ArrayList<>();
             this.location = location;
-            leaveMessage = "";
+            leaveMessage = null;
             leaveRadius = 7;
-            header = "";
-            footer = "";
+            header = null;
+            footer = null;
         }
 
         public void addCommand(String command, String message) {
@@ -101,7 +101,7 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
                     }
 
                     if(playerLoc.distance(startLoc) > am.getLeaveRadius()) {
-                        player.sendMessage(am.getLeaveMessage());
+                        if(am.getLeaveMessage() != null) player.sendMessage(am.getLeaveMessage());
                         removePlayer(playerId);
                     }
                 }
@@ -156,11 +156,15 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
                     sender.sendMessage("§cNo menu available.");
                     return true;
                 }
-                player.sendMessage(menu.getHeader());
+                if(menu.getMessages().size() == 0) {
+                    sender.sendMessage("§cMenu has no options.");
+                    return true;
+                }
+                if(menu.getHeader() != null) player.sendMessage(menu.getHeader());
                 for(String message: menu.getMessages()) {
                     player.sendMessage(message);
                 }
-                player.sendMessage(menu.getFooter());
+                if(menu.getFooter() != null) player.sendMessage(menu.getFooter());
                 return true;
             }
             
@@ -242,5 +246,4 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
         }
         
     }
-    
 }
