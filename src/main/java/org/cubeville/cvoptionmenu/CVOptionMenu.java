@@ -58,8 +58,8 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
         }
         
         public List<String> getMessages() { return messages; }
-        public String getOptionCommand(int Nr) { return commands.get(Nr); }
-        public boolean hasOption(int Nr) { return Nr >= 0 && Nr < commands.size(); }
+        public String getOptionCommand(int Nr) { return commands.get(Nr - 1); }
+        public boolean hasOption(int Nr) { return Nr >= 1 && Nr <= commands.size(); }
         public Location getLocation() { return location; }
         public String getLeaveMessage() { return leaveMessage; }
         public double getLeaveRadius() { return leaveRadius; }
@@ -175,23 +175,23 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
             
             String pdata = "";
             for(int i = 2; i < args.length; i++) {
-                if(i > 1) pdata += " ";
+                if(i > 2) pdata += " ";
                 pdata += args[i];
             }
 
             if(par.equals("command")) {
-                int delim = pdata.indexOf("|");
+                int delim = pdata.indexOf("/");
                 if(delim == -1) {
                     sendUsageMessage(sender);
                     return true;
                 }
                 String cmd = pdata.substring(0, delim);
                 String message = pdata.substring(delim + 1);
-                getMenu(player).addCommand(cmd, message);
+                getMenu(player).addCommand(cmd, ChatColor.translateAlternateColorCodes('&', message));
             }
 
             else if(par.equals("leavemessage")) {
-                getMenu(player).setLeaveMessage(pdata);
+                getMenu(player).setLeaveMessage(ChatColor.translateAlternateColorCodes('&', pdata));
             }
 
             else if(par.equals("leaveradius")) {
@@ -199,11 +199,11 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
             }
 
             else if(par.equals("header")) {
-                getMenu(player).setHeader(pdata);
+                getMenu(player).setHeader(ChatColor.translateAlternateColorCodes('&', pdata));
             }
 
             else if(par.equals("footer")) {
-                getMenu(player).setFooter(pdata);
+                getMenu(player).setFooter(ChatColor.translateAlternateColorCodes('&', pdata));
             }
             
             else {
@@ -225,16 +225,32 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
             return;
         }
 
-        int idx = "123456789".indexOf(event.getMessage());
-        if(event.getMessage().length() == 1 && idx >= 0) {
+	int nr = 0;
+
+	if(event.getMessage().length() == 1) {
+	    int idx = "123456789".indexOf(event.getMessage());
+	    if(idx >= 0) {
+		nr = idx + 1;
+	    }
+	}
+
+	else if(event.getMessage().length() == 2 && event.getMessage().charAt(0) == '1') {
+	    int idx = "0123456789".indexOf(event.getMessage().charAt(1));
+	    if(idx >= 0) {
+		nr = 10 + idx; 
+	    }
+	}
+
+
+        if(nr > 0) {
             event.setCancelled(true);
             UUID playerId = event.getPlayer().getUniqueId();
             if(playerMenu.containsKey(playerId)) {
                 ActiveMenu am = playerMenu.get(playerId);
-                if(am.hasOption(idx)) {
+                if(am.hasOption(nr)) {
                     playerMenu.remove(playerId);
                     Server server = Bukkit.getServer();
-                    server.dispatchCommand(server.getConsoleSender(), am.getOptionCommand(idx));
+                    server.dispatchCommand(server.getConsoleSender(), am.getOptionCommand(nr));
                 }
                 else {
                     event.getPlayer().sendMessage("§cInvalid option.");

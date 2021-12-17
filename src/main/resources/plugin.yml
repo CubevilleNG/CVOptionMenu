@@ -1,8 +1,9 @@
 name: CVOptionMenu
-version: 1.0
+version: 1.18
 main: org.cubeville.cvoptionmenu.CVOptionMenu
 description: Options Menu
 author: FrediW
+api-version: 1.18
 
 commands:
   omenu:
