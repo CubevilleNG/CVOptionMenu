@@ -4,12 +4,71 @@ main: org.cubeville.cvoptionmenu.CVOptionMenu
 description: Options Menu
 author: FrediW
 api-version: 1.18
+depend: [BetonQuest]
 
 commands:
   omenu:
     description: Displays an option menu to a player
     usage: /omenu <player> text|1:command1|2:command2[...]
     permission: cvoptionmenu.omenu
+  1:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  2:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  3:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  4:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  5:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  6:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  7:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  8:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  9:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  10:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  11:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  12:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  13:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  14:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  15:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  16:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  17:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  18:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+  19:
+    description: BQ conversation option
+    permission: cvoptionmenu.option
+
     
 permissions:
   cvoptionmenu.omenu:

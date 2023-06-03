@@ -1,16 +1,17 @@
 package org.cubeville.cvoptionmenu;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.lang.reflect.Field;
+import java.util.*;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Server;
+import org.betonquest.betonquest.BetonQuest;
+import org.betonquest.betonquest.api.profiles.OnlineProfile;
+import org.betonquest.betonquest.conversation.Conversation;
+import org.betonquest.betonquest.conversation.ConversationColors;
+import org.betonquest.betonquest.conversation.ConversationData;
+import org.betonquest.betonquest.utils.PlayerConverter;
+import org.bukkit.*;
 import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,7 +21,7 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-public class CVOptionMenu extends JavaPlugin implements Listener {
+public class CVOptionMenu extends JavaPlugin implements CommandExecutor, Listener {
 
     Map<UUID, ActiveMenu> playerMenu;
     
@@ -211,9 +212,64 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
             }
 
             return true;
+        } else {
+            try {Integer.parseInt(label);} catch(NumberFormatException e){return false;}
+            if(Integer.parseInt(label) < 1 || Integer.parseInt(label) > 19) {
+                sender.sendMessage("§cInvalid option.");
+                return false;
+            }
+            if(args.length > 0) {
+                sender.sendMessage("§cInvalid option.");
+                return false;
+            }
+            if(!(sender instanceof Player)) {
+                sender.sendMessage("Don't send this from console. bad!");
+                return false;
+            }
+            OnlineProfile profile = PlayerConverter.getID((Player) sender);
+            if(Conversation.getConversation(profile) == null) {
+                sender.sendMessage("§cInvalid option. Are you in a conversation right now?");
+                return false;
+            }
+            Conversation conv = Conversation.getConversation(PlayerConverter.getID((Player) sender));
+            Map<Integer, String> currentOptions;
+            try {
+                final Field currentField;
+                if(conv.getClass().equals(Conversation.class)) {
+                    currentField = conv.getClass().getDeclaredField("current");
+                } else if(conv.getClass().getSuperclass().equals(Conversation.class)) {
+                    currentField = conv.getClass().getSuperclass().getDeclaredField("current");
+                } else {
+                    System.out.println("Unable to obtain Conversation.class!");
+                    System.out.println("conv class shows: " + conv.getClass());
+                    System.out.println("conv superclass shows: " + conv.getClass().getSuperclass());
+                    return false;
+                }
+                currentField.setAccessible(true);
+                currentOptions = (Map<Integer, String>) currentField.get(conv);
+            } catch(NoSuchFieldException|IllegalAccessException|IllegalArgumentException e) {
+                System.out.println("Cannot access current options field in conversation BQ class");
+                e.printStackTrace();
+                return false;
+            }
+            int selection = Integer.parseInt(label);
+            if(selection > currentOptions.size()) return false;
+            ConversationData convData = conv.getData();
+            String message = convData.getText(profile, "en", currentOptions.get(selection), ConversationData.OptionType.PLAYER);
+            for(final String variable : BetonQuest.resolveVariables(message)) {
+                message = message.replace(variable, BetonQuest.getInstance().getVariableValue(convData.getPackName(), variable, profile));
+            }
+            message = ChatColor.translateAlternateColorCodes('&', message);
+            StringBuilder string = new StringBuilder();
+            Map<String, ChatColor[]> colors = ConversationColors.getColors();
+            for(final ChatColor color : colors.get("player")) { string.append(color); }
+            string.append(sender.getName()).append(ChatColor.RESET).append(": ");
+            for(final ChatColor color : colors.get("answer")) { string.append(color); }
+            String answerFormat = string.toString();
+            conv.sendMessage(answerFormat + message);
+            conv.passPlayerAnswer(selection);
+            return true;
         }
-
-        return false;
     }
 
     @EventHandler
@@ -241,7 +297,6 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
 	    }
 	}
 
-
         if(nr > 0) {
             event.setCancelled(true);
             UUID playerId = event.getPlayer().getUniqueId();
@@ -262,4 +317,5 @@ public class CVOptionMenu extends JavaPlugin implements Listener {
         }
         
     }
+
 }
