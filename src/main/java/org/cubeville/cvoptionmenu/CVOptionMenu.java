@@ -226,12 +226,27 @@ public class CVOptionMenu extends JavaPlugin implements CommandExecutor, Listene
                 sender.sendMessage("Don't send this from console. bad!");
                 return false;
             }
-            OnlineProfile profile = PlayerConverter.getID((Player) sender);
+            Player player = (Player) sender;
+            OnlineProfile profile = PlayerConverter.getID(player);
             if(Conversation.getConversation(profile) == null) {
-                sender.sendMessage("§cInvalid option. Are you in a conversation right now?");
-                return false;
+                if(playerMenu.containsKey(player.getUniqueId())) {
+                    ActiveMenu am = playerMenu.get(player.getUniqueId());
+                    if(am.hasOption(Integer.parseInt(label))) {
+                        playerMenu.remove(player.getUniqueId());
+                        Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), am.getOptionCommand(Integer.parseInt(label)));
+                        return true;
+                    }
+                    else {
+                        player.sendMessage("§cInvalid option.");
+                        return false;
+                    }
+                }
+                else {
+                    player.sendMessage("§cInvalid option. Are you in a conversation right now?");
+                    return false;
+                }
             }
-            Conversation conv = Conversation.getConversation(PlayerConverter.getID((Player) sender));
+            Conversation conv = Conversation.getConversation(PlayerConverter.getID(player));
             Map<Integer, String> currentOptions;
             try {
                 final Field currentField;
@@ -263,7 +278,7 @@ public class CVOptionMenu extends JavaPlugin implements CommandExecutor, Listene
             StringBuilder string = new StringBuilder();
             Map<String, ChatColor[]> colors = ConversationColors.getColors();
             for(final ChatColor color : colors.get("player")) { string.append(color); }
-            string.append(sender.getName()).append(ChatColor.RESET).append(": ");
+            string.append(player.getName()).append(ChatColor.RESET).append(": ");
             for(final ChatColor color : colors.get("answer")) { string.append(color); }
             String answerFormat = string.toString();
             conv.sendMessage(answerFormat + message);
