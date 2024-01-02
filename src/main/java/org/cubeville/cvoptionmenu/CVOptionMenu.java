@@ -5,9 +5,11 @@ import java.util.*;
 
 import org.betonquest.betonquest.BetonQuest;
 import org.betonquest.betonquest.api.profiles.OnlineProfile;
+import org.betonquest.betonquest.api.profiles.Profile;
 import org.betonquest.betonquest.conversation.Conversation;
 import org.betonquest.betonquest.conversation.ConversationColors;
 import org.betonquest.betonquest.conversation.ConversationData;
+import org.betonquest.betonquest.conversation.ResolvedOption;
 import org.betonquest.betonquest.utils.PlayerConverter;
 import org.bukkit.*;
 import org.bukkit.command.Command;
@@ -247,13 +249,13 @@ public class CVOptionMenu extends JavaPlugin implements CommandExecutor, Listene
                 }
             }
             Conversation conv = Conversation.getConversation(PlayerConverter.getID(player));
-            Map<Integer, String> currentOptions;
+            Map<Integer, ResolvedOption> currentOptions;
             try {
                 final Field currentField;
                 if(conv.getClass().equals(Conversation.class)) {
-                    currentField = conv.getClass().getDeclaredField("current");
+                    currentField = conv.getClass().getDeclaredField("availablePlayerOptions");
                 } else if(conv.getClass().getSuperclass().equals(Conversation.class)) {
-                    currentField = conv.getClass().getSuperclass().getDeclaredField("current");
+                    currentField = conv.getClass().getSuperclass().getDeclaredField("availablePlayerOptions");
                 } else {
                     System.out.println("Unable to obtain Conversation.class!");
                     System.out.println("conv class shows: " + conv.getClass());
@@ -261,7 +263,7 @@ public class CVOptionMenu extends JavaPlugin implements CommandExecutor, Listene
                     return false;
                 }
                 currentField.setAccessible(true);
-                currentOptions = (Map<Integer, String>) currentField.get(conv);
+                currentOptions = (Map<Integer, ResolvedOption>) currentField.get(conv);
             } catch(NoSuchFieldException|IllegalAccessException|IllegalArgumentException e) {
                 System.out.println("Cannot access current options field in conversation BQ class");
                 e.printStackTrace();
@@ -270,9 +272,10 @@ public class CVOptionMenu extends JavaPlugin implements CommandExecutor, Listene
             int selection = Integer.parseInt(label);
             if(selection > currentOptions.size()) return false;
             ConversationData convData = conv.getData();
-            String message = convData.getText(profile, "en", currentOptions.get(selection), ConversationData.OptionType.PLAYER);
+            String message = convData.getText(profile, "en", currentOptions.get(selection));
+            //String message = convData.getText(profile, "en", currentOptions.get(selection), ConversationData.OptionType.PLAYER);
             for(final String variable : BetonQuest.resolveVariables(message)) {
-                message = message.replace(variable, BetonQuest.getInstance().getVariableValue(convData.getPackName(), variable, profile));
+                message = message.replace(variable, BetonQuest.getInstance().getVariableValue(convData.getPack().getQuestPath(), variable, profile));
             }
             message = ChatColor.translateAlternateColorCodes('&', message);
             StringBuilder string = new StringBuilder();
